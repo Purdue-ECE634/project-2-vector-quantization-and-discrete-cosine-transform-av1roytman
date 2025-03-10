@@ -189,12 +189,10 @@ def process_multi_image_training(original_image_path, training_image_dir, codebo
 
 
 if __name__ == "__main__":
-	# Specify paths for your images.
 	# For single-image training:
-	single_image_path = "sample_image/sample_image/airplane.png"  # Change to your image path
+	single_image_path = "sample_image/sample_image/airplane.png"
 	# process_single_image(single_image_path, codebook_sizes=[128, 256], block_size=4)
 
 	# For multi-image training:
-	# Place your training images (e.g., image1.png, image2.png, ...) in a folder.
-	training_folder = "sample_image/sample_image"  # Change to your training images folder
+	training_folder = "sample_image/sample_image"
 	process_multi_image_training(single_image_path, training_folder, codebook_sizes=[128, 256], block_size=4)
