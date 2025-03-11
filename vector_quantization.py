@@ -118,26 +118,29 @@ def process_single_image(image_path, codebook_sizes=[128, 256], block_size=4):
 	if img is None:
 		raise ValueError("Image not found or cannot be loaded.")
 
-	blocks = extract_blocks(img, block_size)
+	blocks, padded_shape, orig_shape = extract_blocks(img, block_size)
 
 	print(f"Processing {image_path} with {blocks.shape[0]} blocks.")
 
-	for L in codebook_sizes:
+	plt.figure(figsize=(12, 6))
+	for idx, L in enumerate(codebook_sizes):
 		print(f"\nTraining codebook with L = {L}...")
 		codebook = lbg_algorithm(blocks, L)
 
 		quantized_blocks, _ = quantize_blocks(blocks, codebook)
-		reconstructed = reconstruct_image(quantized_blocks, img.shape, block_size)
+		reconstructed = reconstruct_image(quantized_blocks, padded_shape, orig_shape, block_size)
 
 		mse = compute_mse(img, reconstructed)
 		psnr = compute_psnr(mse)
 		print(f"Codebook Size: {L}, MSE: {mse:.2f}, PSNR: {psnr:.2f} dB")
 
-		plt.figure(figsize=(6, 6))
+		plt.subplot(1, len(codebook_sizes), idx + 1)
 		plt.title(f"Quantized Image (L = {L})")
 		plt.imshow(reconstructed, cmap='gray')
 		plt.axis("off")
-		plt.show()
+
+	plt.tight_layout()
+	plt.show()
 
 
 def process_multi_image_training(original_image_path, training_image_dir, codebook_sizes=[128, 256], block_size=4):
@@ -147,7 +150,7 @@ def process_multi_image_training(original_image_path, training_image_dir, codebo
 		raise ValueError("Original image not found.")
 
 	# Extract blocks from original image (with padding)
-	orig_blocks = extract_blocks(orig_img, block_size)
+	orig_blocks, padded_shape, original_shape = extract_blocks(orig_img, block_size)
 
 	# Load training images
 	training_paths = glob.glob(os.path.join(training_image_dir, "*"))
@@ -158,7 +161,7 @@ def process_multi_image_training(original_image_path, training_image_dir, codebo
 		if img is None:
 			print(f"Skipping invalid image: {path}")
 			continue
-		blocks = extract_blocks(img, block_size)
+		blocks, _, _ = extract_blocks(img, block_size)
 		if blocks.shape[0] == 0:
 			print(f"Skipping image with no blocks: {path}")
 			continue
@@ -170,29 +173,33 @@ def process_multi_image_training(original_image_path, training_image_dir, codebo
 	training_blocks = np.vstack(training_blocks)
 	print(f"Training on {len(training_paths)} images with {training_blocks.shape[0]} blocks.")
 
-	for L in codebook_sizes:
+	plt.figure(figsize=(12, 6))
+
+	for idx, L in enumerate(codebook_sizes):
 		print(f"\n[Multi-Image Training] Training codebook with L = {L}...")
 		codebook_multi = lbg_algorithm(training_blocks, L)
 
 		quantized_blocks, _ = quantize_blocks(orig_blocks, codebook_multi)
-		reconstructed = reconstruct_image(quantized_blocks, orig_img.shape, block_size)
+		reconstructed = reconstruct_image(quantized_blocks, padded_shape, original_shape, block_size)
 
 		mse = compute_mse(orig_img, reconstructed)
 		psnr = compute_psnr(mse)
 		print(f"[Multi-Image] Codebook Size: {L}, MSE: {mse:.2f}, PSNR: {psnr:.2f} dB")
 
-		plt.figure(figsize=(6, 6))
+		plt.subplot(1, len(codebook_sizes), idx + 1)
 		plt.title(f"Quantized (Multi-Image Codebook, L = {L})")
 		plt.imshow(reconstructed, cmap='gray')
 		plt.axis("off")
-		plt.show()
+
+	plt.tight_layout()
+	plt.show()
 
 
 if __name__ == "__main__":
 	# For single-image training:
-	single_image_path = "sample_image/sample_image/airplane.png"
-	# process_single_image(single_image_path, codebook_sizes=[128, 256], block_size=4)
+	single_image_path = "sample_image/sample_image/watch.png"
+	# process_single_image(single_image_path, codebook_sizes=[8, 32, 128, 256], block_size=4)
 
 	# For multi-image training:
 	training_folder = "sample_image/sample_image"
-	process_multi_image_training(single_image_path, training_folder, codebook_sizes=[128, 256], block_size=4)
+	process_multi_image_training(single_image_path, training_folder, codebook_sizes=[8, 32, 128, 256], block_size=4)
